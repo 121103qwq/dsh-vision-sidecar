@@ -1,0 +1,11 @@
+# Install the sidecar route and make it the default for newly created sessions.
+# Text-only requests still go straight to DeepSeek; the hosted free VLM is
+# contacted only when the durable conversation contains a new image.
+- insert:
+    - id: vision-sidecar
+      name: dsh-vision-sidecar
+
+- id: agent-default-model
+  config:
+    provider: deepseek-vision
+    model: deepseek-with-vision

@@ -1,0 +1,62 @@
+{
+  "name": "dsh-vision-sidecar",
+  "version": "0.1.0",
+  "description": "Add free hosted or OpenAI-compatible vision to DeepSeek Harness while keeping DeepSeek as the reasoning model",
+  "author": "121103qwq",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src/**/*.js",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "vision",
+    "glm",
+    "openai-compatible",
+    "vlm"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/121103qwq/dsh-vision-sidecar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/121103qwq/dsh-vision-sidecar/issues"
+  },
+  "homepage": "https://github.com/121103qwq/dsh-vision-sidecar#readme",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "packageManager": "pnpm@11.7.0",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1 <5",
+    "@deepseek-ai/dsh-attachment": ">=0.1.0-rc.6 <0.2.0",
+    "@deepseek-ai/dsh-credentials": ">=0.1.0-rc.6 <0.2.0",
+    "@deepseek-ai/dsh-llm": ">=0.1.0-rc.6 <0.2.0",
+    "@deepseek-ai/dsh-session": ">=0.1.0-rc.6 <0.2.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.8"
+  },
+  "scripts": {
+    "test": "vitest run --config vitest.config.js",
+    "pack:check": "npm pack --dry-run",
+    "smoke:install": "node scripts/smoke-install.mjs"
+  }
+}
