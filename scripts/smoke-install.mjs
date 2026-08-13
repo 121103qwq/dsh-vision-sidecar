@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
 import { mkdtemp, mkdir, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -35,12 +34,11 @@ function pnpm(args, options = {}) {
   return run(process.execPath, [pnpmEntry, ...args], options)
 }
 
-function dshEntry() {
-  if (process.env.DSH_SMOKE_ENTRY !== undefined) return resolve(process.env.DSH_SMOKE_ENTRY)
-  const globalRoot = pnpm(['root', '--global']).trim()
-  const entry = join(globalRoot, '@deepseek-ai', 'dsh', 'lib', 'bin.js')
-  if (!existsSync(entry)) throw new Error(`could not locate the DSH CLI under ${globalRoot}`)
-  return entry
+function dsh(args, options = {}) {
+  if (process.env.DSH_SMOKE_ENTRY !== undefined) {
+    return run(process.execPath, [resolve(process.env.DSH_SMOKE_ENTRY), ...args], options)
+  }
+  return pnpm(['dlx', '@deepseek-ai/dsh@0.1.0-rc.6', ...args], options)
 }
 
 try {
@@ -53,10 +51,9 @@ try {
   const archives = (await readdir(packDirectory)).filter(file => file.endsWith('.tgz'))
   if (archives.length !== 1) throw new Error(`expected one packed archive, found ${archives.length}`)
 
-  const dsh = dshEntry()
   const env = { ...process.env, DSH_HOME: home }
-  run(process.execPath, [dsh, 'plugin', '--profile', 'web', 'add', join(packDirectory, archives[0])], { env })
-  const composed = run(process.execPath, [dsh, '--profile', 'web', '--dump-config'], { env })
+  dsh(['plugin', '--profile', 'web', 'add', join(packDirectory, archives[0])], { env })
+  const composed = dsh(['--profile', 'web', '--dump-config'], { env })
 
   for (const expected of [
     '# == dsh-vision-sidecar',
