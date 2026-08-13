@@ -28,7 +28,7 @@
 ```powershell
 $env:DEEPSEEK_API_KEY = '<你的 DeepSeek Key>'
 $env:ZAI_API_KEY = '<你的智谱 Key>'
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.0
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.1
 dsh --profile web
 ```
 
@@ -56,9 +56,10 @@ POSIX shell 对两枚 Key 分别使用 `export DEEPSEEK_API_KEY='...'` 和 `expo
 | --- | --- | --- | --- |
 | [智谱 GLM](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` | 默认项。官方当前列为免费视觉模型，需要免费账号 Key。 |
 | [OpenRouter](https://openrouter.ai/google/gemma-4-31b-it%3Afree) | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | 需要 Key；免费账户额度由所有免费模型共享，可能调整。 |
+| [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/en/tasks/chat-completion) | `https://router.huggingface.co/v1` | `Qwen/Qwen2.5-VL-7B-Instruct` | 需要有 Inference Providers 权限的 HF Token；免费额度和提供方可用性会变化。 |
 | [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-VL-8B-Instruct) | `https://api-inference.modelscope.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` | 需要 Token；每日额度和可用性动态变化。 |
 
-三者都是远程服务，会收到完整图片。个人、机密或受监管图片只有在你接受相应提供商条款时才应发送。
+四者都是远程服务，会收到完整图片。个人、机密或受监管图片只有在你接受相应提供商条款时才应发送。账号申请、OpenAI 兼容切换示例，以及“免注册”方案核验见[免费模型申请指南](docs/free-models.zh-CN.md)。
 
 ### 切换到 OpenRouter
 
@@ -80,6 +81,18 @@ POSIX shell 对两枚 Key 分别使用 `export DEEPSEEK_API_KEY='...'` 和 `expo
     visionBaseURL: https://api-inference.modelscope.cn/v1
     visionModel: Qwen/Qwen3-VL-8B-Instruct
     visionApiKeyEnv: MODELSCOPE_API_TOKEN
+```
+
+### 切换到 Hugging Face
+
+创建一个拥有 Inference Providers 权限的 Token，然后提供 `HF_TOKEN`：
+
+```yaml
+- id: vision-sidecar
+  config:
+    visionBaseURL: https://router.huggingface.co/v1
+    visionModel: Qwen/Qwen2.5-VL-7B-Instruct
+    visionApiKeyEnv: HF_TOKEN
 ```
 
 不要把明文 Key 写进 `cordis.patch.yml`。`visionApiKeyEnv` 是 DSH 凭据引用/环境变量名，不是密钥本身。

@@ -28,7 +28,7 @@ Before starting, have a DSH Web profile that can already call its text model. Th
 ```powershell
 $env:DEEPSEEK_API_KEY = '<your DeepSeek key>'
 $env:ZAI_API_KEY = '<your Zhipu key>'
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.0
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.1
 dsh --profile web
 ```
 
@@ -56,9 +56,10 @@ Free plans change. These options were checked on 2026-08-14; verify current limi
 | --- | --- | --- | --- |
 | [Zhipu GLM](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` | Default. Officially listed free vision model; free account key required. |
 | [OpenRouter](https://openrouter.ai/google/gemma-4-31b-it%3Afree) | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | Key required. Free-account quota is shared across free models and may change. |
+| [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/en/tasks/chat-completion) | `https://router.huggingface.co/v1` | `Qwen/Qwen2.5-VL-7B-Instruct` | HF account and token with Inference Providers permission; free credit and provider availability may change. |
 | [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-VL-8B-Instruct) | `https://api-inference.modelscope.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` | Token required; daily quota and availability are dynamic. |
 
-All three are remote services and receive the complete image. Do not send personal, confidential, or regulated images unless the provider's terms are acceptable.
+All four are remote services and receive the complete image. Do not send personal, confidential, or regulated images unless the provider's terms are acceptable. The [free-model application guide](docs/free-models.zh-CN.md) documents account steps, OpenAI-compatible overrides, and the current no-registration findings.
 
 ### OpenRouter override
 
@@ -80,6 +81,18 @@ Add this row to the profile's `cordis.patch.yml`, then provide `OPENROUTER_API_K
     visionBaseURL: https://api-inference.modelscope.cn/v1
     visionModel: Qwen/Qwen3-VL-8B-Instruct
     visionApiKeyEnv: MODELSCOPE_API_TOKEN
+```
+
+### Hugging Face override
+
+Create a token with Inference Providers permission, then provide `HF_TOKEN`:
+
+```yaml
+- id: vision-sidecar
+  config:
+    visionBaseURL: https://router.huggingface.co/v1
+    visionModel: Qwen/Qwen2.5-VL-7B-Instruct
+    visionApiKeyEnv: HF_TOKEN
 ```
 
 Do not put a literal key in `cordis.patch.yml`. `visionApiKeyEnv` is a DSH credential reference/environment-variable name, not the secret value.
