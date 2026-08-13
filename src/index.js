@@ -19,9 +19,11 @@ export const Config = z.object({
   routeModel: z.string().default('deepseek-with-vision'),
   targetProvider: z.string().default('deepseek-official'),
   targetModel: z.string().default('deepseek-v4-flash'),
-  visionBaseURL: z.string().default('https://open.bigmodel.cn/api/paas/v4'),
-  visionModel: z.string().default('glm-4.6v-flash'),
-  visionApiKeyEnv: z.string().role('credential-ref').default('ZAI_API_KEY'),
+  visionBaseURL: z.string().default('https://oai.endpoints.kepler.ai.cloud.ovh.net/v1'),
+  visionModel: z.string().default('Qwen2.5-VL-72B-Instruct'),
+  // An empty reference selects OVHcloud's anonymous 2-RPM tier. Set a
+  // credential reference to use an authenticated provider or higher limits.
+  visionApiKeyEnv: z.string().role('credential-ref').default(''),
   visionPrompt: z.string().default(DEFAULT_VISION_PROMPT),
   visionTemperature: z.number().min(0).max(2).default(0.1),
   visionMaxTokens: z.number().step(1).min(1).default(2048),
@@ -46,9 +48,11 @@ export function resolveConfig(config = {}) {
     routeModel: nonEmpty({ routeModel: config.routeModel ?? 'deepseek-with-vision' }, 'routeModel'),
     targetProvider: nonEmpty({ targetProvider: config.targetProvider ?? 'deepseek-official' }, 'targetProvider'),
     targetModel: nonEmpty({ targetModel: config.targetModel ?? 'deepseek-v4-flash' }, 'targetModel'),
-    visionBaseURL: nonEmpty({ visionBaseURL: config.visionBaseURL ?? 'https://open.bigmodel.cn/api/paas/v4' }, 'visionBaseURL'),
-    visionModel: nonEmpty({ visionModel: config.visionModel ?? 'glm-4.6v-flash' }, 'visionModel'),
-    visionApiKeyEnv: nonEmpty({ visionApiKeyEnv: config.visionApiKeyEnv ?? 'ZAI_API_KEY' }, 'visionApiKeyEnv'),
+    visionBaseURL: nonEmpty({ visionBaseURL: config.visionBaseURL ?? 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1' }, 'visionBaseURL'),
+    visionModel: nonEmpty({ visionModel: config.visionModel ?? 'Qwen2.5-VL-72B-Instruct' }, 'visionModel'),
+    visionApiKeyEnv: typeof config.visionApiKeyEnv === 'string'
+      ? config.visionApiKeyEnv.trim()
+      : '',
     visionPrompt: nonEmpty({ visionPrompt: config.visionPrompt ?? DEFAULT_VISION_PROMPT }, 'visionPrompt'),
     visionTemperature: config.visionTemperature ?? 0.1,
     visionMaxTokens: config.visionMaxTokens ?? 2048,
@@ -60,7 +64,7 @@ export function resolveConfig(config = {}) {
   if (resolved.routeProvider === resolved.targetProvider) {
     throw new Error('dsh-vision-sidecar: routeProvider and targetProvider must differ')
   }
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(resolved.visionApiKeyEnv)) {
+  if (resolved.visionApiKeyEnv.length > 0 && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(resolved.visionApiKeyEnv)) {
     throw new Error('dsh-vision-sidecar: visionApiKeyEnv must be an environment-variable name')
   }
   for (const key of [

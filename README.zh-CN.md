@@ -4,11 +4,11 @@
 
 给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的纯文本模型外挂“托管视觉眼睛”，同时保留 DeepSeek 作为推理大脑。图片先交给免费或自定义的 OpenAI 兼容视觉 API，VLM 实际生成并交给 DeepSeek 的描述会写入 DSH Session，之后按普通文本重放。
 
-默认使用智谱官方免费的 `glm-4.6v-flash`，不需要本地 VLM、GPU 或下载数 GB 模型；需要免费注册智谱账号并使用自己的 API Key。
+默认使用 OVHcloud AI Endpoints 的匿名 `Qwen2.5-VL-72B-Instruct`。默认每个 IP、每个模型每分钟 2 次，不需要注册账号或视觉 API Key；也不需要本地 VLM、GPU 或下载数 GB 模型。
 
 ## 和已有插件的不同点
 
-- **默认就是免费托管视觉。** 在已可用的 DSH 文本模型之上，只需额外提供免费的 `ZAI_API_KEY`，视觉端点和模型已有默认值。
+- **默认就是免注册托管视觉。** 在已可用的 DSH 文本模型之上，默认 OVHcloud 视觉端点无需账号或 Key；匿名额度为每个 IP、每个模型每分钟 2 次，也可选用自己的 OVH Key 提高认证限额。
 - **可持久重放。** VLM 输出是正式的 DSH Session 消息，不是只存在于单次请求改写或进程内缓存里的隐藏文本。
 - **纯文本零额外开销。** 对话里没有尚未描述的图片时，完全不会访问视觉提供商。
 - **主模型可替换。** 默认与 DeepSeek 路由一起测试；不依赖专有 replay state 的其他 DSH 文本路由也可通过 `targetProvider` 与 `targetModel` 指定。
@@ -17,26 +17,24 @@
 
 要求 DSH `0.1.0-rc.6` 或同一 `0.1.x` 线上的更高版本，以及 Node.js `22.19+` 或 `24+`。
 
-## 三步即用：免费托管视觉
+## 三步即用：免注册托管视觉
 
 开始前，你需要一个已能正常调用文本模型的 DSH Web profile。默认主路由是 `deepseek-official/deepseek-v4-flash`，因此还需要你自己的 `DEEPSEEK_API_KEY`；这一主模型调用按其原有规则计费。
 
-1. 在[智谱 API 控制台](https://open.bigmodel.cn/usercenter/apikeys)免费创建自己的 Key。
-2. 只把 Key 提供给 DSH 启动进程，或用 DSH Credentials 保存同名引用。
-3. 安装插件并启动 Web profile。
+1. 确认 DSH Web profile 已能正常调用文本模型。
+2. 安装插件并启动 Web profile；默认 OVHcloud 视觉层不需要注册或视觉 Key。
 
 ```powershell
 $env:DEEPSEEK_API_KEY = '<你的 DeepSeek Key>'
-$env:ZAI_API_KEY = '<你的智谱 Key>'
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.1
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.2
 dsh --profile web
 ```
 
-POSIX shell 对两枚 Key 分别使用 `export DEEPSEEK_API_KEY='...'` 和 `export ZAI_API_KEY='...'`。插件会新增并默认选择 `deepseek-vision/deepseek-with-vision`。如果你的 profile 有优先级更高的用户 patch，请在模型选择器中手动选择 **DeepSeek + Hosted Vision**。
+POSIX shell 只需使用 `export DEEPSEEK_API_KEY='...'`。插件会新增并默认选择 `deepseek-vision/deepseek-with-vision`。如果你的 profile 有优先级更高的用户 patch，请在模型选择器中手动选择 **DeepSeek + Hosted Vision**。
 
-“免费”只指默认的**视觉预处理模型**。主推理路由仍沿用它原有的凭据、额度和计费规则；默认的 `deepseek-official/deepseek-v4-flash` 仍需要 `DEEPSEEK_API_KEY`。
+“免注册”只指默认的**视觉预处理端点**。匿名层的额度、价格和地区限制仍以 OVHcloud 当前条款为准；主推理路由仍沿用它原有的凭据、额度和计费规则，默认的 `deepseek-official/deepseek-v4-flash` 仍需要 `DEEPSEEK_API_KEY`。
 
-插件刻意不内置“大家共用的免费 Key”。任何持有者都能消耗同一额度，而且难以按用户轮换、撤销和归因。每位用户持有自己的免费额度，轮换 Key 时无需修改插件配置。
+插件刻意不内置“大家共用的免费 Key”。默认使用 OVHcloud 按 IP/模型限制的匿名层；如需认证限额，请使用你自己的 Key，插件不会保存或收集它。
 
 ## 图片处理流程
 
@@ -54,12 +52,25 @@ POSIX shell 对两枚 Key 分别使用 `export DEEPSEEK_API_KEY='...'` 和 `expo
 
 | 提供方 | Base URL | 模型 | 凭据与额度说明 |
 | --- | --- | --- | --- |
-| [智谱 GLM](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` | 默认项。官方当前列为免费视觉模型，需要免费账号 Key。 |
+| [OVHcloud AI Endpoints](https://docs.ovhcloud.com/en/guides/public-cloud/ai-machine-learning/ai-endpoints-capabilities) | `https://oai.endpoints.kepler.ai.cloud.ovh.net/v1` | `Qwen2.5-VL-72B-Instruct` | 默认项。匿名层每个 IP、每个模型每分钟 2 次，不需要视觉 Key。 |
+| [智谱 GLM](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` | 需要账号 Key；官方当前列为免费视觉模型。 |
 | [OpenRouter](https://openrouter.ai/google/gemma-4-31b-it%3Afree) | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | 需要 Key；免费账户额度由所有免费模型共享，可能调整。 |
 | [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/en/tasks/chat-completion) | `https://router.huggingface.co/v1` | `Qwen/Qwen2.5-VL-7B-Instruct` | 需要有 Inference Providers 权限的 HF Token；免费额度和提供方可用性会变化。 |
 | [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-VL-8B-Instruct) | `https://api-inference.modelscope.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` | 需要 Token；每日额度和可用性动态变化。 |
 
-四者都是远程服务，会收到完整图片。个人、机密或受监管图片只有在你接受相应提供商条款时才应发送。账号申请、OpenAI 兼容切换示例，以及“免注册”方案核验见[免费模型申请指南](docs/free-models.zh-CN.md)。
+五者都是远程服务，会收到完整图片。个人、机密或受监管图片只有在你接受相应提供商条款时才应发送。匿名 OVHcloud 默认、账号申请、OpenAI 兼容切换示例，以及其他“免注册”方案核验见[免费模型申请指南](docs/free-models.zh-CN.md)。
+
+### 使用 OVHcloud 认证 Key（可选）
+
+默认 `visionApiKeyEnv` 为空，使用匿名层。若要使用 Public Cloud 项目中的 OVHcloud Access Token，提高认证限额：
+
+```yaml
+- id: vision-sidecar
+  config:
+    visionBaseURL: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
+    visionModel: Qwen2.5-VL-72B-Instruct
+    visionApiKeyEnv: OVH_AI_ENDPOINTS_ACCESS_TOKEN
+```
 
 ### 切换到 OpenRouter
 
@@ -106,9 +117,9 @@ POSIX shell 对两枚 Key 分别使用 `export DEEPSEEK_API_KEY='...'` 和 `expo
   config:
     targetProvider: deepseek-official
     targetModel: deepseek-v4-pro
-    visionBaseURL: https://open.bigmodel.cn/api/paas/v4
-    visionModel: glm-4.6v-flash
-    visionApiKeyEnv: ZAI_API_KEY
+    visionBaseURL: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
+    visionModel: Qwen2.5-VL-72B-Instruct
+    visionApiKeyEnv: ''
     visionTimeoutMs: 60000
     visionMaxResponseBytes: 524288
     visionMaxSessionBytes: 1048576

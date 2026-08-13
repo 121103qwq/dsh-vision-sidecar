@@ -60,6 +60,7 @@ export class VisionSidecarAdapter extends LlmAdapter {
   }
 
   async resolveApiKey() {
+    if (this.config.visionApiKeyEnv.length === 0) return undefined
     const ref = credentialRef(this.config.visionApiKeyEnv)
     const stored = await this.ctx.credentials.resolve(ref)
     if (stored !== undefined) {

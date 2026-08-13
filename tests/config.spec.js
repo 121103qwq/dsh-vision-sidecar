@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { resolveConfig } from '../src/index.js'
 
 describe('vision-sidecar config', () => {
-  it('defaults to the hosted free Zhipu vision model', () => {
+  it('defaults to the hosted anonymous OVHcloud vision model', () => {
     expect(resolveConfig({})).toMatchObject({
       routeProvider: 'deepseek-vision',
       routeModel: 'deepseek-with-vision',
-      visionBaseURL: 'https://open.bigmodel.cn/api/paas/v4',
-      visionModel: 'glm-4.6v-flash',
-      visionApiKeyEnv: 'ZAI_API_KEY',
+      visionBaseURL: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1',
+      visionModel: 'Qwen2.5-VL-72B-Instruct',
+      visionApiKeyEnv: '',
       visionMaxResponseBytes: 524288,
       visionMaxSessionBytes: 1048576,
       isLoopback: false,
@@ -20,7 +20,7 @@ describe('vision-sidecar config', () => {
     [{ routeProvider: '' }, /non-empty/],
     [{ visionBaseURL: 'http://example.com/v1' }, /must use HTTPS/],
     [{ visionBaseURL: 'https://user:pass@example.com/v1' }, /cannot contain credentials/],
-    [{ visionApiKeyEnv: 'not-valid-key' }, /environment-variable name/],
+    [{ visionApiKeyEnv: 'not-valid-key!' }, /environment-variable name/],
     [{ visionMaxTokens: 0 }, /positive safe integer/],
     [{ visionMaxResponseBytes: 0 }, /positive safe integer/],
     [{ visionMaxSessionBytes: Number.MAX_SAFE_INTEGER + 1 }, /positive safe integer/],

@@ -58,7 +58,7 @@ function harness(fetchImpl) {
       resolve: vi.fn(async () => ({ value: 'test-vision-key', source: 'managed' })),
     },
   }
-  const config = resolveConfig({ visionModel: 'test-vlm' })
+  const config = resolveConfig({ visionModel: 'test-vlm', visionApiKeyEnv: 'TEST_VISION_KEY' })
   return { adapter: new VisionSidecarAdapter(ctx, config, { fetchImpl }), ctx, session, appended }
 }
 
@@ -237,6 +237,28 @@ describe('vision-sidecar adapter', () => {
       sessionId: 'session-1',
       messages: [message([{ type: 'image', attachment: ref('one') }])],
     }))).rejects.toMatchObject({ code: 'MISSING_CREDENTIAL' })
+  })
+
+  it('uses the anonymous endpoint when no credential reference is configured', async () => {
+    const fetchImpl = vi.fn(async (_url, init) => {
+      expect(init.headers.authorization).toBeUndefined()
+      return new Response(JSON.stringify({
+        choices: [{ message: { content: 'anonymous evidence' } }],
+      }), { status: 200 })
+    })
+    const { adapter, ctx, session } = harness(fetchImpl)
+    adapter.config = resolveConfig({
+      visionModel: 'anonymous-vlm',
+      visionApiKeyEnv: '',
+    })
+    await collect(adapter.stream({
+      provider: 'deepseek-vision',
+      model: 'deepseek-with-vision',
+      sessionId: 'session-1',
+      messages: [message([{ type: 'image', attachment: ref('anonymous') }])],
+    }))
+    expect(ctx.credentials.resolve).not.toHaveBeenCalled()
+    expect(session.append).toHaveBeenCalledTimes(1)
   })
 
   it('rejects a malformed managed credential without attempting provider I/O', async () => {
