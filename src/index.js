@@ -19,10 +19,10 @@ export const Config = z.object({
   routeModel: z.string().default('deepseek-with-vision'),
   targetProvider: z.string().default('deepseek-official'),
   targetModel: z.string().default('deepseek-v4-flash'),
-  visionBaseURL: z.string().default('https://oai.endpoints.kepler.ai.cloud.ovh.net/v1'),
-  visionModel: z.string().default('Qwen2.5-VL-72B-Instruct'),
-  // An empty reference selects OVHcloud's anonymous 2-RPM tier. Set a
-  // credential reference to use an authenticated provider or higher limits.
+  visionBaseURL: z.string().default('https://api.llm7.io/v1'),
+  visionModel: z.string().default('default'),
+  // An empty reference selects LLM7.io's anonymous tier. Set a credential
+  // reference to use a free token or another authenticated provider.
   visionApiKeyEnv: z.string().role('credential-ref').default(''),
   visionPrompt: z.string().default(DEFAULT_VISION_PROMPT),
   visionTemperature: z.number().min(0).max(2).default(0.1),
@@ -48,8 +48,8 @@ export function resolveConfig(config = {}) {
     routeModel: nonEmpty({ routeModel: config.routeModel ?? 'deepseek-with-vision' }, 'routeModel'),
     targetProvider: nonEmpty({ targetProvider: config.targetProvider ?? 'deepseek-official' }, 'targetProvider'),
     targetModel: nonEmpty({ targetModel: config.targetModel ?? 'deepseek-v4-flash' }, 'targetModel'),
-    visionBaseURL: nonEmpty({ visionBaseURL: config.visionBaseURL ?? 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1' }, 'visionBaseURL'),
-    visionModel: nonEmpty({ visionModel: config.visionModel ?? 'Qwen2.5-VL-72B-Instruct' }, 'visionModel'),
+    visionBaseURL: nonEmpty({ visionBaseURL: config.visionBaseURL ?? 'https://api.llm7.io/v1' }, 'visionBaseURL'),
+    visionModel: nonEmpty({ visionModel: config.visionModel ?? 'default' }, 'visionModel'),
     visionApiKeyEnv: typeof config.visionApiKeyEnv === 'string'
       ? config.visionApiKeyEnv.trim()
       : '',

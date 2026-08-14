@@ -2,16 +2,16 @@
 
 [中文说明](README.zh-CN.md)
 
-Give text-only models in [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) hosted visual perception without replacing the reasoning model. Images go to a free or custom OpenAI-compatible vision API; the exact description sent to DeepSeek is then committed to the DSH session and replayed as ordinary text.
+Give text-only models in [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) hosted visual perception without replacing the reasoning model. Images go to a free or custom OpenAI-compatible vision API; the exact description sent to the configured reasoning model is then committed to the DSH session and replayed as ordinary text.
 
-The default is OVHcloud AI Endpoints' anonymous `Qwen2.5-VL-72B-Instruct` tier. No local VLM, GPU, account, or vision API key is required for the default 2-RPM-per-IP/model allowance. No local VLM, GPU, or multi-gigabyte model download is required.
+The default is LLM7.io's anonymous `default` vision route. No local VLM, GPU, account, or vision API key is required for its documented anonymous allowance. No local VLM, GPU, or multi-gigabyte model download is required.
 
 ## Why this plugin
 
-- **No-key hosted vision default.** On top of a working DSH text route, the default OVHcloud vision endpoint works without registration or a vision key at 2 requests per minute per IP and model; an OVH key is optional for authenticated limits.
+- **No-key hosted vision default.** On top of a working DSH text route, the default LLM7.io vision endpoint works without registration or a vision key; an LLM7 token is optional for higher limits.
 - **Durable and replayable.** VLM output is a real DSH session message, not a hidden request-time rewrite or process-only cache.
 - **No image overhead for text.** The vision provider is contacted only when an undescribed image exists.
-- **Replaceable reasoning target.** The default DeepSeek route is tested. Other DSH text routes that do not depend on opaque provider replay state can be selected with `targetProvider` and `targetModel`.
+- **Replaceable reasoning target.** The sidecar forwards to `targetProvider` and `targetModel`; any DSH text route that does not depend on opaque provider replay state can be selected.
 - **Fail-loud.** Missing credentials, timeouts, rate limits, and provider failures remain typed errors. The plugin never silently forwards an image to a text-only model.
 - **Build-free Git install.** The repository ships native ESM JavaScript, so pnpm does not need permission to run a `prepare` script.
 
@@ -19,22 +19,21 @@ Requires DSH `0.1.0-rc.6` or newer within the `0.1.x` line and Node.js `22.19+` 
 
 ## Quick start: no-key hosted vision
 
-Before starting, have a DSH Web profile that can already call its text model. The default reasoning route is `deepseek-official/deepseek-v4-flash`, so it also needs your own `DEEPSEEK_API_KEY` and follows that model's existing billing rules.
+Before starting, have a DSH Web profile that can already call its text model. The plugin does not require a particular reasoning provider or model; it forwards descriptions to the configured `targetProvider` and `targetModel`.
 
 1. Make sure your DSH Web profile can already call its text model.
-2. Install the plugin and start the Web profile. The default OVHcloud vision tier needs no vision account or key.
+2. Install the plugin and start the Web profile. The default LLM7.io vision tier needs no vision account or key.
 
 ```powershell
-$env:DEEPSEEK_API_KEY = '<your DeepSeek key>'
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.2
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.3
 dsh --profile web
 ```
 
-On POSIX shells, export `DEEPSEEK_API_KEY='...'`. The bundle adds and selects `deepseek-vision/deepseek-with-vision`. If a later user patch already selects another model, choose **DeepSeek + Hosted Vision** in the model picker.
+On POSIX shells, no vision key export is needed. The bundle adds and selects `deepseek-vision/deepseek-with-vision`. If a later user patch already selects another model, choose **DeepSeek + Hosted Vision** in the model picker.
 
-The no-key claim applies to the default **vision preprocessing endpoint**. Its anonymous 2-RPM allowance and any pricing or regional restrictions remain subject to OVHcloud's current terms. Your selected reasoning route keeps its existing credential, quota, and billing rules; the default `deepseek-official/deepseek-v4-flash` still requires `DEEPSEEK_API_KEY`.
+The no-key claim applies to the default **vision preprocessing endpoint**. LLM7.io documents anonymous access up to 500,000 tokens/day, 60 requests/hour, 10 requests/minute, and 1 request/second; these limits and model availability can change. Your selected reasoning route keeps its existing credential, quota, and billing rules.
 
-There is deliberately no shared or embedded API key. The anonymous OVHcloud allowance is provider-enforced per IP/model. Any optional authenticated key remains user-owned and is never stored in this package.
+There is deliberately no shared or embedded API key. LLM7.io's anonymous allowance is provider-enforced; any optional authenticated key remains user-owned and is never stored in this package.
 
 ## What happens to an image
 
@@ -52,17 +51,30 @@ Free plans change. These options were checked on 2026-08-14; verify current limi
 
 | Provider | Base URL | Model | Credential and limit notes |
 | --- | --- | --- | --- |
-| [OVHcloud AI Endpoints](https://docs.ovhcloud.com/en/guides/public-cloud/ai-machine-learning/ai-endpoints-capabilities) | `https://oai.endpoints.kepler.ai.cloud.ovh.net/v1` | `Qwen2.5-VL-72B-Instruct` | Default. Anonymous allowance is 2 requests/minute per IP and model; no vision key is needed. |
+| [LLM7.io](https://docs.llm7.io/guides/image-recognition) | `https://api.llm7.io/v1` | `default` | Default. Anonymous vision works without a key; documented anonymous limit is 500,000 tokens/day and 10 requests/minute. |
+| [OVHcloud AI Endpoints](https://docs.ovhcloud.com/en/guides/public-cloud/ai-machine-learning/ai-endpoints-capabilities) | `https://oai.endpoints.kepler.ai.cloud.ovh.net/v1` | `Qwen2.5-VL-72B-Instruct` | No-key alternative. Anonymous allowance is 2 requests/minute per IP and model. |
 | [Zhipu GLM](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` | Account key required; officially listed free vision model. |
 | [OpenRouter](https://openrouter.ai/google/gemma-4-31b-it%3Afree) | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | Key required. Free-account quota is shared across free models and may change. |
 | [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/en/tasks/chat-completion) | `https://router.huggingface.co/v1` | `Qwen/Qwen2.5-VL-7B-Instruct` | HF account and token with Inference Providers permission; free credit and provider availability may change. |
 | [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-VL-8B-Instruct) | `https://api-inference.modelscope.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` | Token required; daily quota and availability are dynamic. |
 
-All five are remote services and receive the complete image. Do not send personal, confidential, or regulated images unless the provider's terms are acceptable. The [free-model application guide](docs/free-models.zh-CN.md) documents the anonymous OVHcloud default, account steps, OpenAI-compatible overrides, and the current no-registration findings.
+All six are remote services and receive the complete image. Do not send personal, confidential, or regulated images unless the provider's terms are acceptable. The [free-model application guide](docs/free-models.zh-CN.md) documents the anonymous LLM7.io default, OVHcloud alternative, account steps, OpenAI-compatible overrides, and the current no-registration findings.
 
-### OVHcloud authenticated override
+### LLM7.io token override
 
-The default leaves `visionApiKeyEnv` empty to use the anonymous tier. To use an OVHcloud access key and its higher authenticated limit, create one in your Public Cloud project and set:
+The default leaves `visionApiKeyEnv` empty for anonymous access. Create an optional token at [token.llm7.io](https://token.llm7.io/) for higher limits, then set:
+
+```yaml
+- id: vision-sidecar
+  config:
+    visionBaseURL: https://api.llm7.io/v1
+    visionModel: default
+    visionApiKeyEnv: LLM7_API_KEY
+```
+
+### OVHcloud alternative
+
+To use OVHcloud's anonymous or authenticated vision endpoint instead, set:
 
 ```yaml
 - id: vision-sidecar
@@ -110,15 +122,15 @@ Do not put a literal key in `cordis.patch.yml`. `visionApiKeyEnv` is a DSH crede
 
 ## Configuration
 
-The no-key default needs no patch. To change the reasoning target or request bounds, override the `vision-sidecar` row:
+The no-key LLM7.io default needs no patch. To change the reasoning target or request bounds, override the `vision-sidecar` row:
 
 ```yaml
 - id: vision-sidecar
   config:
-    targetProvider: deepseek-official
-    targetModel: deepseek-v4-pro
-    visionBaseURL: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
-    visionModel: Qwen2.5-VL-72B-Instruct
+    targetProvider: your-existing-text-provider
+    targetModel: your-existing-text-model
+    visionBaseURL: https://api.llm7.io/v1
+    visionModel: default
     visionApiKeyEnv: ''
     visionTimeoutMs: 60000
     visionMaxResponseBytes: 524288

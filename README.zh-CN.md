@@ -2,16 +2,16 @@
 
 [English](README.md)
 
-给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的纯文本模型外挂“托管视觉眼睛”，同时保留 DeepSeek 作为推理大脑。图片先交给免费或自定义的 OpenAI 兼容视觉 API，VLM 实际生成并交给 DeepSeek 的描述会写入 DSH Session，之后按普通文本重放。
+给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的纯文本模型外挂托管视觉能力，同时保留 Desktop/profile 中配置的文本模型作为推理模型。图片先交给免费或自定义的 OpenAI 兼容视觉 API，VLM 实际生成并交给配置文本模型的描述会写入 DSH Session，之后按普通文本重放。
 
-默认使用 OVHcloud AI Endpoints 的匿名 `Qwen2.5-VL-72B-Instruct`。默认每个 IP、每个模型每分钟 2 次，不需要注册账号或视觉 API Key；也不需要本地 VLM、GPU 或下载数 GB 模型。
+默认使用 LLM7.io 的匿名 `default` 视觉路由。官方文档给出的匿名额度为每日 500,000 tokens、每小时 60 次、每分钟 10 次、每秒 1 次；不需要注册账号或视觉 API Key，也不需要本地 VLM、GPU 或下载数 GB 模型。
 
 ## 和已有插件的不同点
 
-- **默认就是免注册托管视觉。** 在已可用的 DSH 文本模型之上，默认 OVHcloud 视觉端点无需账号或 Key；匿名额度为每个 IP、每个模型每分钟 2 次，也可选用自己的 OVH Key 提高认证限额。
+- **默认就是免注册托管视觉。** 在已可用的 DSH 文本模型之上，默认 LLM7.io 视觉端点无需账号或 Key；可选用自己的 LLM7 Token 提高额度。
 - **可持久重放。** VLM 输出是正式的 DSH Session 消息，不是只存在于单次请求改写或进程内缓存里的隐藏文本。
 - **纯文本零额外开销。** 对话里没有尚未描述的图片时，完全不会访问视觉提供商。
-- **主模型可替换。** 默认与 DeepSeek 路由一起测试；不依赖专有 replay state 的其他 DSH 文本路由也可通过 `targetProvider` 与 `targetModel` 指定。
+- **主模型不设限定。** 通过 `targetProvider` 与 `targetModel` 指定 Desktop/profile 中已有的文本路由，不依赖某个特定主模型。
 - **失败不伪装成功。** 缺凭据、超时、限流和服务端错误都会明确报错，不会把原图静默转交给纯文本模型。
 - **Git 安装无需构建授权。** 仓库直接交付原生 ESM JavaScript，没有 `prepare` 构建脚本。
 
@@ -19,22 +19,21 @@
 
 ## 三步即用：免注册托管视觉
 
-开始前，你需要一个已能正常调用文本模型的 DSH Web profile。默认主路由是 `deepseek-official/deepseek-v4-flash`，因此还需要你自己的 `DEEPSEEK_API_KEY`；这一主模型调用按其原有规则计费。
+开始前，你需要一个已能正常调用文本模型的 DSH Web profile。插件不要求特定的主推理提供方或模型，会把视觉描述交给配置中的 `targetProvider` 和 `targetModel`。
 
 1. 确认 DSH Web profile 已能正常调用文本模型。
-2. 安装插件并启动 Web profile；默认 OVHcloud 视觉层不需要注册或视觉 Key。
+2. 安装插件并启动 Web profile；默认 LLM7.io 视觉层不需要注册或视觉 Key。
 
 ```powershell
-$env:DEEPSEEK_API_KEY = '<你的 DeepSeek Key>'
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.2
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.3
 dsh --profile web
 ```
 
-POSIX shell 只需使用 `export DEEPSEEK_API_KEY='...'`。插件会新增并默认选择 `deepseek-vision/deepseek-with-vision`。如果你的 profile 有优先级更高的用户 patch，请在模型选择器中手动选择 **DeepSeek + Hosted Vision**。
+POSIX shell 不需要导出视觉 Key。插件会新增并默认选择 `deepseek-vision/deepseek-with-vision`。如果你的 profile 有优先级更高的用户 patch，请在模型选择器中手动选择 **DeepSeek + Hosted Vision**。
 
-“免注册”只指默认的**视觉预处理端点**。匿名层的额度、价格和地区限制仍以 OVHcloud 当前条款为准；主推理路由仍沿用它原有的凭据、额度和计费规则，默认的 `deepseek-official/deepseek-v4-flash` 仍需要 `DEEPSEEK_API_KEY`。
+“免注册”只指默认的**视觉预处理端点**。LLM7.io 的匿名额度和模型可用性可能变化；主推理路由仍沿用 Desktop/profile 已配置的凭据、额度和计费规则。
 
-插件刻意不内置“大家共用的免费 Key”。默认使用 OVHcloud 按 IP/模型限制的匿名层；如需认证限额，请使用你自己的 Key，插件不会保存或收集它。
+插件刻意不内置“大家共用的免费 Key”。默认使用 LLM7.io 匿名层；如需更高限额，请使用你自己的 Token，插件不会保存或收集它。
 
 ## 图片处理流程
 
@@ -52,17 +51,30 @@ POSIX shell 只需使用 `export DEEPSEEK_API_KEY='...'`。插件会新增并默
 
 | 提供方 | Base URL | 模型 | 凭据与额度说明 |
 | --- | --- | --- | --- |
-| [OVHcloud AI Endpoints](https://docs.ovhcloud.com/en/guides/public-cloud/ai-machine-learning/ai-endpoints-capabilities) | `https://oai.endpoints.kepler.ai.cloud.ovh.net/v1` | `Qwen2.5-VL-72B-Instruct` | 默认项。匿名层每个 IP、每个模型每分钟 2 次，不需要视觉 Key。 |
+| [LLM7.io](https://docs.llm7.io/guides/image-recognition) | `https://api.llm7.io/v1` | `default` | 默认项。匿名视觉无需 Key；官方给出每日 500,000 tokens、每分钟 10 次等限制。 |
+| [OVHcloud AI Endpoints](https://docs.ovhcloud.com/en/guides/public-cloud/ai-machine-learning/ai-endpoints-capabilities) | `https://oai.endpoints.kepler.ai.cloud.ovh.net/v1` | `Qwen2.5-VL-72B-Instruct` | 免 Key 备选；匿名层每个 IP、每个模型每分钟 2 次。 |
 | [智谱 GLM](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash) | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` | 需要账号 Key；官方当前列为免费视觉模型。 |
 | [OpenRouter](https://openrouter.ai/google/gemma-4-31b-it%3Afree) | `https://openrouter.ai/api/v1` | `google/gemma-4-31b-it:free` | 需要 Key；免费账户额度由所有免费模型共享，可能调整。 |
 | [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/en/tasks/chat-completion) | `https://router.huggingface.co/v1` | `Qwen/Qwen2.5-VL-7B-Instruct` | 需要有 Inference Providers 权限的 HF Token；免费额度和提供方可用性会变化。 |
 | [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-VL-8B-Instruct) | `https://api-inference.modelscope.cn/v1` | `Qwen/Qwen3-VL-8B-Instruct` | 需要 Token；每日额度和可用性动态变化。 |
 
-五者都是远程服务，会收到完整图片。个人、机密或受监管图片只有在你接受相应提供商条款时才应发送。匿名 OVHcloud 默认、账号申请、OpenAI 兼容切换示例，以及其他“免注册”方案核验见[免费模型申请指南](docs/free-models.zh-CN.md)。
+六者都是远程服务，会收到完整图片。个人、机密或受监管图片只有在你接受相应提供商条款时才应发送。匿名 LLM7.io 默认、OVHcloud 备选、账号申请、OpenAI 兼容切换示例，以及其他“免注册”方案核验见[免费模型申请指南](docs/free-models.zh-CN.md)。
 
-### 使用 OVHcloud 认证 Key（可选）
+### 使用 LLM7.io Token（可选）
 
-默认 `visionApiKeyEnv` 为空，使用匿名层。若要使用 Public Cloud 项目中的 OVHcloud Access Token，提高认证限额：
+默认 `visionApiKeyEnv` 为空，使用匿名层。可在 [token.llm7.io](https://token.llm7.io/) 获取 Token，然后设置：
+
+```yaml
+- id: vision-sidecar
+  config:
+    visionBaseURL: https://api.llm7.io/v1
+    visionModel: default
+    visionApiKeyEnv: LLM7_API_KEY
+```
+
+### 切换到 OVHcloud
+
+要改用 OVHcloud 匿名或认证视觉端点：
 
 ```yaml
 - id: vision-sidecar
@@ -110,15 +122,15 @@ POSIX shell 只需使用 `export DEEPSEEK_API_KEY='...'`。插件会新增并默
 
 ## 配置
 
-默认免费托管配置不需要 patch。若要更换主推理模型或请求边界，覆盖 `vision-sidecar` 行：
+默认免 Key 托管配置不需要 patch。若要更换主推理模型或请求边界，覆盖 `vision-sidecar` 行：
 
 ```yaml
 - id: vision-sidecar
   config:
-    targetProvider: deepseek-official
-    targetModel: deepseek-v4-pro
-    visionBaseURL: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
-    visionModel: Qwen2.5-VL-72B-Instruct
+    targetProvider: your-existing-text-provider
+    targetModel: your-existing-text-model
+    visionBaseURL: https://api.llm7.io/v1
+    visionModel: default
     visionApiKeyEnv: ''
     visionTimeoutMs: 60000
     visionMaxResponseBytes: 524288

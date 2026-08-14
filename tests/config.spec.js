@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { resolveConfig } from '../src/index.js'
 
 describe('vision-sidecar config', () => {
-  it('defaults to the hosted anonymous OVHcloud vision model', () => {
+  it('defaults to the hosted anonymous LLM7.io vision model', () => {
     expect(resolveConfig({})).toMatchObject({
       routeProvider: 'deepseek-vision',
       routeModel: 'deepseek-with-vision',
-      visionBaseURL: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1',
-      visionModel: 'Qwen2.5-VL-72B-Instruct',
+      visionBaseURL: 'https://api.llm7.io/v1',
+      visionModel: 'default',
       visionApiKeyEnv: '',
       visionMaxResponseBytes: 524288,
       visionMaxSessionBytes: 1048576,
