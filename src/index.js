@@ -4,10 +4,12 @@
  */
 import z from '@deepseek-ai/schemastery'
 import { VisionSidecarAdapter } from './adapter.js'
+import { normalizeVisionBaseURL } from './vision-route.js'
 
 export { VisionSidecarAdapter } from './adapter.js'
 export * from './content.js'
 export * from './openai-vision.js'
+export * from './vision-route.js'
 
 export const name = 'llm-vision-sidecar'
 export const inject = ['llm', 'attachments', 'sessions', 'credentials']
@@ -21,6 +23,9 @@ export const Config = z.object({
   targetModel: z.string().default('deepseek-v4-flash'),
   visionBaseURL: z.string().default('https://api.llm7.io/v1'),
   visionModel: z.string().default('default'),
+  // Optional route created by Desktop's Settings → Models page. When set,
+  // its URL, first model, protocol, and credential reference become the VLM.
+  visionProvider: z.string().default(''),
   // An empty reference selects LLM7.io's anonymous tier. Set a credential
   // reference to use a free token or another authenticated provider.
   visionApiKeyEnv: z.string().role('credential-ref').default(''),
@@ -50,6 +55,7 @@ export function resolveConfig(config = {}) {
     targetModel: nonEmpty({ targetModel: config.targetModel ?? 'deepseek-v4-flash' }, 'targetModel'),
     visionBaseURL: nonEmpty({ visionBaseURL: config.visionBaseURL ?? 'https://api.llm7.io/v1' }, 'visionBaseURL'),
     visionModel: nonEmpty({ visionModel: config.visionModel ?? 'default' }, 'visionModel'),
+    visionProvider: typeof config.visionProvider === 'string' ? config.visionProvider.trim() : '',
     visionApiKeyEnv: typeof config.visionApiKeyEnv === 'string'
       ? config.visionApiKeyEnv.trim()
       : '',
@@ -85,24 +91,11 @@ export function resolveConfig(config = {}) {
     || resolved.visionTemperature > 2) {
     throw new Error('dsh-vision-sidecar: visionTemperature must be between 0 and 2')
   }
-  let url
-  try {
-    url = new URL(resolved.visionBaseURL)
-  } catch (error) {
-    throw new Error('dsh-vision-sidecar: visionBaseURL must be an absolute URL', { cause: error })
-  }
-  const loopbackHosts = new Set(['127.0.0.1', 'localhost', '[::1]'])
-  const isLoopback = loopbackHosts.has(url.hostname)
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback)) {
-    throw new Error('dsh-vision-sidecar: remote visionBaseURL must use HTTPS')
-  }
-  if (url.username.length > 0 || url.password.length > 0 || url.search.length > 0 || url.hash.length > 0) {
-    throw new Error('dsh-vision-sidecar: visionBaseURL cannot contain credentials, query, or fragment')
-  }
+  const endpoint = normalizeVisionBaseURL(resolved.visionBaseURL)
   return Object.freeze({
     ...resolved,
-    visionBaseURL: url.toString().replace(/\/+$/, ''),
-    isLoopback,
+    visionBaseURL: endpoint.baseURL,
+    isLoopback: endpoint.isLoopback,
   })
 }
 

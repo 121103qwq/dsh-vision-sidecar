@@ -54,6 +54,9 @@ function harness(fetchImpl) {
       get: vi.fn(() => session),
       flush: vi.fn(async () => true),
     },
+    settings: {
+      get: vi.fn(() => undefined),
+    },
     credentials: {
       resolve: vi.fn(async () => ({ value: 'test-vision-key', source: 'managed' })),
     },
@@ -259,6 +262,68 @@ describe('vision-sidecar adapter', () => {
     }))
     expect(ctx.credentials.resolve).not.toHaveBeenCalled()
     expect(session.append).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses a custom provider saved by the Desktop Models page', async () => {
+    const fetchImpl = vi.fn(async (url, init) => {
+      expect(url).toBe('https://vision.example/v1/chat/completions')
+      expect(init.headers.authorization).toBe('Bearer custom-key')
+      expect(JSON.parse(init.body).model).toBe('custom-vlm')
+      return new Response(JSON.stringify({
+        choices: [{ message: { content: 'custom route evidence' } }],
+      }), { status: 200 })
+    })
+    const { adapter, ctx, session } = harness(fetchImpl)
+    ctx.settings = {
+      get: vi.fn(() => ({
+        providers: {
+          'my-vision': {
+            api: 'openai-completions',
+            baseURL: 'https://vision.example/v1',
+            models: [{ id: 'custom-vlm' }],
+            apiKeyEnv: 'MY_VISION_API_KEY',
+          },
+        },
+      })),
+    }
+    ctx.credentials.resolve.mockResolvedValue({ value: 'custom-key', source: 'managed' })
+    adapter.config = resolveConfig({ visionProvider: 'my-vision' })
+    await collect(adapter.stream({
+      provider: 'deepseek-vision',
+      model: 'deepseek-with-vision',
+      sessionId: 'session-1',
+      messages: [message([{ type: 'image', attachment: ref('custom') }])],
+    }))
+    expect(ctx.credentials.resolve).toHaveBeenCalledWith('MY_VISION_API_KEY')
+    expect(session.append).toHaveBeenCalledTimes(1)
+  })
+
+  it('fails clearly when the selected Desktop provider is missing or uses another protocol', async () => {
+    const { adapter, ctx } = harness(vi.fn())
+    adapter.config = resolveConfig({ visionProvider: 'missing-vision' })
+    await expect(collect(adapter.stream({
+      provider: 'deepseek-vision',
+      model: 'deepseek-with-vision',
+      sessionId: 'session-1',
+      messages: [message([{ type: 'image', attachment: ref('missing') }])],
+    }))).rejects.toMatchObject({ code: 'VISION_PROVIDER_NOT_CONFIGURED' })
+
+    ctx.settings.get.mockReturnValue({
+      providers: {
+        'responses-vision': {
+          api: 'openai-responses',
+          baseURL: 'https://vision.example/v1',
+          models: [{ id: 'responses-vlm' }],
+        },
+      },
+    })
+    adapter.config = resolveConfig({ visionProvider: 'responses-vision' })
+    await expect(collect(adapter.stream({
+      provider: 'deepseek-vision',
+      model: 'deepseek-with-vision',
+      sessionId: 'session-1',
+      messages: [message([{ type: 'image', attachment: ref('responses') }])],
+    }))).rejects.toMatchObject({ code: 'VISION_PROVIDER_UNSUPPORTED_PROTOCOL' })
   })
 
   it('rejects a malformed managed credential without attempting provider I/O', async () => {

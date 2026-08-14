@@ -8,6 +8,7 @@ describe('vision-sidecar config', () => {
       routeModel: 'deepseek-with-vision',
       visionBaseURL: 'https://api.llm7.io/v1',
       visionModel: 'default',
+      visionProvider: '',
       visionApiKeyEnv: '',
       visionMaxResponseBytes: 524288,
       visionMaxSessionBytes: 1048576,

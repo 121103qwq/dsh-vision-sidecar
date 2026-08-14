@@ -38,7 +38,7 @@ visionApiKeyEnv: ''
 无需注册或申请 Key，直接安装插件即可。官方当前匿名限制为每日 500,000 tokens、每小时 60 次、每分钟 10 次、每秒 1 次；视觉请求格式见[图像识别文档](https://docs.llm7.io/guides/image-recognition)。
 
 ```powershell
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.3
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.4
 dsh --profile web
 ```
 
@@ -80,7 +80,7 @@ PowerShell：
 
 ```powershell
 $env:ZAI_API_KEY = '<你的智谱 Key>'
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.3
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.4
 dsh --profile web
 ```
 
@@ -88,7 +88,7 @@ POSIX shell：
 
 ```sh
 export ZAI_API_KEY='<你的智谱 Key>'
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.3
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.4
 dsh --profile web
 ```
 
@@ -141,6 +141,24 @@ dsh --profile web
 ```
 
 ModelScope 的免费额度、每日限制和模型可用性需要以账号页面和服务返回为准。
+
+## 7. 在 DSH 模型设置页添加任意 OpenAI 兼容视觉端点
+
+如果你有自己的网关、公司端点或其他免费额度，不必修改插件源码：
+
+1. 打开 DeepSeek Desktop 的 **设置 → 模型**，在 `llm-pi-ai` 下点击 **添加自定义提供方**。
+2. 设置小写的 Provider ID（例如 `my-vision`）、HTTPS Base URL、`openai-completions` 协议，并添加至少一个视觉模型 ID。
+3. 在 API Key 输入框保存自己的 Key。页面会把 Key 写入 DSH Credentials，不会把密钥值写入 settings 文件。
+4. 在 profile patch 中把视觉侧路由指向该 Provider：
+
+```yaml
+- id: vision-sidecar
+  config:
+    visionProvider: my-vision
+    visionModel: default
+```
+
+`default` 代表该页面模型列表的第一项，也可以填写精确模型 ID。视觉端点必须接受 `/chat/completions`；页面里的 Responses 或 Anthropic 协议路由不能直接用于本插件的预处理。聊天时选择 **DeepSeek + Hosted Vision**，主推理模型继续沿用 Desktop/profile 的现有配置。
 
 ## Key 和隐私检查清单
 

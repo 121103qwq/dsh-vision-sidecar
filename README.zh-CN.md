@@ -25,7 +25,7 @@
 2. 安装插件并启动 Web profile；默认 LLM7.io 视觉层不需要注册或视觉 Key。
 
 ```powershell
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.3
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.4
 dsh --profile web
 ```
 
@@ -34,6 +34,26 @@ POSIX shell 不需要导出视觉 Key。插件会新增并默认选择 `deepseek
 “免注册”只指默认的**视觉预处理端点**。LLM7.io 的匿名额度和模型可用性可能变化；主推理路由仍沿用 Desktop/profile 已配置的凭据、额度和计费规则。
 
 插件刻意不内置“大家共用的免费 Key”。默认使用 LLM7.io 匿名层；如需更高限额，请使用你自己的 Token，插件不会保存或收集它。
+
+## 在模型选择页面添加自定义视觉模型
+
+DeepSeek Desktop 已经自带模型设置页，插件复用它，不再增加第二套凭据表单。打开 **设置 → 模型**，在 `llm-pi-ai` 分区选择 **添加自定义提供方**：
+
+1. Provider ID 填一个小写短横线格式，例如 `my-vision`。
+2. 填视觉服务的 HTTPS Base URL，例如 `https://gateway.example/v1`。
+3. 协议选择 `openai-completions`，添加至少一个视觉模型 ID。
+4. 在 API Key 输入框粘贴自己的 Key 后保存。Key 通过 DSH Credentials 只写入凭据存储，不会写进 `settings.yaml`。
+
+然后让外挂使用这个页面保存的路由：
+
+```yaml
+- id: vision-sidecar
+  config:
+    visionProvider: my-vision
+    visionModel: default
+```
+
+`visionModel: default` 会使用页面中该路由的第一个模型；也可以直接填页面里的具体模型 ID。视觉路由必须是 OpenAI Chat Completions 兼容端点；Responses 或 Anthropic 协议不能直接作为本插件的视觉端点。对话框中选择 **DeepSeek + Hosted Vision** 后即可发送图片，主推理仍使用 `targetProvider`/`targetModel`，不要求更换 DeepSeek Desktop 的主模型。
 
 ## 图片处理流程
 

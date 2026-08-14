@@ -25,7 +25,7 @@ Before starting, have a DSH Web profile that can already call its text model. Th
 2. Install the plugin and start the Web profile. The default LLM7.io vision tier needs no vision account or key.
 
 ```powershell
-dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.3
+dsh plugin --profile web add github:121103qwq/dsh-vision-sidecar#v0.1.4
 dsh --profile web
 ```
 
@@ -34,6 +34,26 @@ On POSIX shells, no vision key export is needed. The bundle adds and selects `de
 The no-key claim applies to the default **vision preprocessing endpoint**. LLM7.io documents anonymous access up to 500,000 tokens/day, 60 requests/hour, 10 requests/minute, and 1 request/second; these limits and model availability can change. Your selected reasoning route keeps its existing credential, quota, and billing rules.
 
 There is deliberately no shared or embedded API key. LLM7.io's anonymous allowance is provider-enforced; any optional authenticated key remains user-owned and is never stored in this package.
+
+## Add a custom vision model from the Models page
+
+DeepSeek Desktop already includes the model settings page, so the plugin reuses it instead of adding a second credential form. Open **Settings → Models**, then under `llm-pi-ai` choose **Add custom provider**:
+
+1. Enter a lowercase hyphenated Provider ID, such as `my-vision`.
+2. Enter the provider's HTTPS Base URL, such as `https://gateway.example/v1`.
+3. Choose `openai-completions` and add at least one vision model ID.
+4. Paste your own key into the API key field and apply. DSH stores it write-only through the credentials service, not in `settings.yaml`.
+
+Point the sidecar at the route saved by the page:
+
+```yaml
+- id: vision-sidecar
+  config:
+    visionProvider: my-vision
+    visionModel: default
+```
+
+`visionModel: default` selects the first model listed for that route; you can instead enter an exact model ID. The vision route must speak OpenAI Chat Completions; Responses and Anthropic protocols cannot be used directly as this plugin's vision endpoint. Select **DeepSeek + Hosted Vision** in the conversation model picker to send images. The reasoning call still uses `targetProvider`/`targetModel`, so the Desktop text model does not need to change.
 
 ## What happens to an image
 

@@ -15,6 +15,7 @@ import {
   DESCRIPTION_SOURCE,
 } from './content.js'
 import { describeImages } from './openai-vision.js'
+import { resolveVisionRoute } from './vision-route.js'
 
 /** A composed route: external VLM preprocessing followed by the configured text model. */
 export class VisionSidecarAdapter extends LlmAdapter {
@@ -39,7 +40,7 @@ export class VisionSidecarAdapter extends LlmAdapter {
       provider,
       id: this.config.routeModel,
       name: `${target.name} + Vision`,
-      description: `Uses ${this.config.visionModel} for images, then ${target.name} for reasoning.`,
+      description: `Uses ${resolveVisionRoute(this.ctx, this.config).visionModel} for images, then ${target.name} for reasoning.`,
       inputModalities: ['text', 'image'],
     }]
   }
@@ -59,14 +60,14 @@ export class VisionSidecarAdapter extends LlmAdapter {
     }
   }
 
-  async resolveApiKey() {
-    if (this.config.visionApiKeyEnv.length === 0) return undefined
-    const ref = credentialRef(this.config.visionApiKeyEnv)
+  async resolveApiKey(config = this.config) {
+    if (config.visionApiKeyEnv.length === 0) return undefined
+    const ref = credentialRef(config.visionApiKeyEnv)
     const stored = await this.ctx.credentials.resolve(ref)
     if (stored !== undefined) {
       return assertUsableApiKey(stored.value, 'dsh-vision-sidecar', String(ref))
     }
-    if (this.config.isLoopback) return undefined
+    if (config.isLoopback) return undefined
     throw new LlmError(
       `vision endpoint requires a credential; store or export ${ref}`,
       'MISSING_CREDENTIAL',
@@ -105,16 +106,17 @@ export class VisionSidecarAdapter extends LlmAdapter {
         if (session === undefined) {
           throw new LlmError(`vision-sidecar session "${String(options.sessionId)}" is not live`, 'VISION_SESSION_REQUIRED')
         }
-        const model = this.config.visionModel
+        const visionConfig = resolveVisionRoute(this.ctx, this.config)
+        const model = visionConfig.visionModel
         const content = []
         let contentBytes = 0
         for (const batch of batches(pending, this.config.maxImagesPerRequest)) {
           const description = await describeImages(
-            this.config,
+            visionConfig,
             model,
             batch,
             this.ctx.attachments,
-            () => this.resolveApiKey(),
+            () => this.resolveApiKey(visionConfig),
             this.fetchImpl,
             options.signal,
           )
